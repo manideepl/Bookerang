@@ -11,8 +11,11 @@ import io.ktor.jackson.*
 import io.ktor.request.*
 import io.ktor.response.*
 import io.ktor.routing.*
+import org.slf4j.LoggerFactory
 
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
+
+val logger = LoggerFactory.getLogger(Application::class.java)
 
 fun Application.module() {
     install(ContentNegotiation) {
@@ -24,7 +27,9 @@ fun Application.module() {
             realm = "jwt.realm"
             verifier(makeJWTVerifier("jwt.domain", "jwt.audience"))
             validate { jwtCredential ->
-                if (jwtCredential.payload.audience.contains("jwt.audience")) JWTPrincipal(jwtCredential.payload) else null
+                if (userNameExists(jwtCredential.payload.getClaim("username").asString()) != null) JWTPrincipal(
+                    jwtCredential.payload
+                ) else null
             }
         }
     }
@@ -38,9 +43,33 @@ fun Application.module() {
         }
 
         post("/login") {
-            
+            val input = call.receive<InputForLogin>()
+            val found = userNameExists(input.username)
+
+            if (found != null) {
+                val result = authenticateReader(found, input)
+                call.respondText { result }
+            } else {
+                call.respondText { "User not found!" }
+            }
         }
     }
+}
+
+suspend fun userNameExists(username: String): Reader? {
+    return DbRepo.findUser(username)
+}
+
+fun authenticateReader(reader: Reader, input: InputForLogin): String {
+    val pwd = reader.password
+//    TODO replace with bcrypt
+    if (pwd == input.password) {
+        val token = JWtFactory.generateToken(input.username)
+        logger.debug("token: $token")
+        return "jwt: $token"
+    }
+
+    return "Incorrect password"
 }
 
 fun makeJWTVerifier(issuer: String, audience: String): JWTVerifier {

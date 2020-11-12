@@ -1,12 +1,6 @@
 package manlan
 
-import com.mongodb.ConnectionString
-import com.mongodb.MongoClientSettings
 import org.bson.Document
-import org.bson.codecs.configuration.CodecRegistries.fromProviders
-import org.bson.codecs.configuration.CodecRegistries.fromRegistries
-import org.bson.codecs.configuration.CodecRegistry
-import org.bson.codecs.pojo.PojoCodecProvider
 import org.litote.kmongo.coroutine.coroutine
 import org.litote.kmongo.reactivestreams.KMongo
 
@@ -39,5 +33,13 @@ object DbRepo {
 
         val collection = db.getCollection<Reader>("readers")
         return collection.aggregate<Reader>(listOf(topDoc)).toList()
+    }
+
+    suspend fun findUser(username: String): Reader? {
+        val collection = db.getCollection<Reader>("readers")
+
+        val filter = Document()
+        filter["username"] = username
+        return collection.findOne(filter)
     }
 }
