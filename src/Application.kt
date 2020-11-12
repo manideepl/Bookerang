@@ -24,11 +24,10 @@ fun Application.module() {
         jackson { }
     }
 
-    val jwtRealm = environment.config.property("jwt.realm").getString()
 
     install(Authentication) {
         jwt {
-            realm = jwtRealm
+            realm = "com.manlan"
             verifier(JWtFactory.makeJWTVerifier())
             validate { jwtCredential ->
                 val username = jwtCredential.payload.getClaim("username").asString()
