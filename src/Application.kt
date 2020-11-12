@@ -11,31 +11,39 @@ import io.ktor.jackson.*
 import io.ktor.request.*
 import io.ktor.response.*
 import io.ktor.routing.*
+import io.ktor.util.*
 import org.slf4j.LoggerFactory
 
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 
 val logger = LoggerFactory.getLogger(Application::class.java)
 
+@KtorExperimentalAPI
 fun Application.module() {
     install(ContentNegotiation) {
         jackson { }
     }
 
+    val jwtRealm = environment.config.property("jwt.realm").getString()
+
     install(Authentication) {
         jwt {
-            realm = "jwt.realm"
-            verifier(makeJWTVerifier("jwt.domain", "jwt.audience"))
+            realm = jwtRealm
+            verifier(JWtFactory.makeJWTVerifier())
             validate { jwtCredential ->
-                if (userNameExists(jwtCredential.payload.getClaim("username").asString()) != null) JWTPrincipal(
-                    jwtCredential.payload
-                ) else null
+                val username = jwtCredential.payload.getClaim("username").asString()
+                if(username != null) {
+                    Reader(username)
+                }else {
+                    null
+                }
             }
         }
     }
 
     routing {
         authenticate {
+
             get("/books") {
                 val input: InputForBooks = call.receive()
                 call.respond(DbRepo.getReaders(input.radius, input.geoLocation))
@@ -57,6 +65,7 @@ fun Application.module() {
 }
 
 suspend fun userNameExists(username: String): Reader? {
+    logger.debug("finding user")
     return DbRepo.findUser(username)
 }
 
@@ -65,14 +74,11 @@ fun authenticateReader(reader: Reader, input: InputForLogin): String {
 //    TODO replace with bcrypt
     if (pwd == input.password) {
         val token = JWtFactory.generateToken(input.username)
-        logger.debug("token: $token")
         return "jwt: $token"
     }
 
     return "Incorrect password"
 }
 
-fun makeJWTVerifier(issuer: String, audience: String): JWTVerifier {
-    return JWT.require(Algorithm.HMAC256("secret")).withAudience(audience).withIssuer(issuer).build()
-}
+
 
