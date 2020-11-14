@@ -41,13 +41,13 @@ fun Application.module() {
     }
 
     routing {
-        authenticate {
-
+//        authenticate {
+//TODO enable this later when you handle Auth at AppSync level
             get("/books") {
                 val input: InputForBooks = call.receive()
                 call.respond(DbRepo.getReaders(input.radius, input.geoLocation))
             }
-        }
+//        }
 
         post("/login") {
             val input = call.receive<InputForLogin>()
