@@ -24,6 +24,9 @@ fun Application.module() {
         jackson { }
     }
 
+    install(CORS) {
+        anyHost()
+    }
 
     install(Authentication) {
         jwt {
