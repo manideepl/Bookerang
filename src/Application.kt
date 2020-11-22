@@ -1,20 +1,16 @@
 package manlan
 
-import com.auth0.jwt.JWT
-import com.auth0.jwt.JWTVerifier
-import com.auth0.jwt.algorithms.Algorithm
 import io.ktor.application.*
 import io.ktor.auth.*
 import io.ktor.auth.jwt.*
 import io.ktor.features.*
-import io.ktor.http.*
 import io.ktor.jackson.*
 import io.ktor.request.*
 import io.ktor.response.*
 import io.ktor.routing.*
 import io.ktor.util.*
+import org.mindrot.jbcrypt.BCrypt
 import org.slf4j.LoggerFactory
-import kotlin.time.Duration
 
 fun main(args: Array<String>): Unit = io.ktor.server.netty.EngineMain.main(args)
 
@@ -26,17 +22,6 @@ fun Application.module() {
         jackson { }
     }
 
-    install(CORS) {
-        method(HttpMethod.Options)
-        header(HttpHeaders.XForwardedProto)
-        anyHost()
-        host("my-host")
-        // host("my-host:80")
-        // host("my-host", subDomains = listOf("www"))
-        // host("my-host", schemes = listOf("http", "https"))
-        allowCredentials = true
-        allowNonSimpleContentTypes = true
-    }
 
     install(Authentication) {
         jwt {
@@ -53,14 +38,14 @@ fun Application.module() {
         }
     }
 
+
     routing {
-//        authenticate {
-//TODO enable this later when you handle Auth at AppSync level
+        authenticate {
             get("/books") {
                 val input: InputForBooks = call.receive()
                 call.respond(DbRepo.getReaders(input.radius, input.geoLocation))
             }
-//        }
+        }
 
         post("/login") {
             val input = call.receive<InputForLogin>()
@@ -83,13 +68,12 @@ suspend fun userNameExists(username: String): Reader? {
 
 fun authenticateReader(reader: Reader, input: InputForLogin): String {
     val pwd = reader.password
-//    TODO replace with bcrypt
-    if (pwd == input.password) {
-        val token = JWtFactory.generateToken(input.username)
+
+    if (BCrypt.checkpw(input.password, pwd)) {
+        val token = JWtFactory.generateToken(reader.username)
         return "jwt: $token"
     }
-
-    return "Incorrect password"
+    return "incorrect password"
 }
 
 
