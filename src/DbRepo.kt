@@ -7,8 +7,6 @@ import org.litote.kmongo.reactivestreams.KMongo
 
 
 object DbRepo {
-    //    TODO move the parameters to application.conf
-
     private val client by lazy {
         val config = ConfigFactory.load()
         val connectionString = config.getString("mongo.connectionString")
