@@ -11,7 +11,6 @@ object DbRepo {
         val config = ConfigFactory.load()
         val connectionString = config.getString("mongo.connectionString")
         KMongo.createClient(connectionString).coroutine
-
     }
 
     private val db by lazy {
